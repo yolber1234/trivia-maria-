@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clínica VetTrivia: Anatomía, Patología y Rescate</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            clinic: {
+              bg: '#f4f8f7',
+              surface: '#ffffff',
+              teal: '#0f766e',
+              tealDark: '#115e59',
+              mint: '#ccfbf1',
+              amber: '#d97706',
+              amberSoft: '#fef3c7',
+              coral: '#e11d48',
+              coralSoft: '#ffe4e6',
+              slateText: '#0f172a',
+              muted: '#475569',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f4f8f7;
+      color: #0f172a;
+    }
+    .option-card {
+      transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
+    }
+    .option-card:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-fade-in {
+      animation: fadeSlideIn 0.24s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-clinic-bg text-clinic-slateText selection:bg-teal-200 selection:text-teal-950">
+
+  <!-- Barra superior de la clínica -->
+  <header class="bg-white border-b border-teal-900/10 sticky top-0 z-20 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <!-- Emblema SVG de clínica veterinaria -->
+        <div class="w-11 h-11 rounded-2xl bg-teal-700 text-white flex items-center justify-center shadow-sm shrink-0">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+            <circle cx="12" cy="12" r="9" class="opacity-35" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 leading-tight">
+            Clínica VetTrivia
+          </h1>
+          <p class="text-xs sm:text-sm text-teal-800 font-medium">
+            Anatomía, Patología y Rescate · 24 casos clínicos
+          </p>
+        </div>
+      </div>
+
+      <!-- Indicadores rápidos durante la partida -->
+      <div id="liveHud" class="hidden items-center gap-2 sm:gap-3 text-xs sm:text-sm font-semibold">
+        <div class="px-3 py-1.5 rounded-xl bg-teal-50 text-teal-900 border border-teal-200 flex items-center gap-1.5">
+          <span>Puntos:</span>
+          <span id="hudScore" class="font-extrabold text-teal-700">0</span>
+        </div>
+        <div class="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-1">
+          <span>Racha:</span>
+          <span id="hudStreak" class="font-extrabold text-amber-700">0x</span>
+        </div>
+        <div id="hudTimerBox" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1.5">
+          <span>Tiempo:</span>
+          <span id="hudTimer" class="font-extrabold tabular-nums">25s</span>
+        </div>
+      </div>
+
+      <!-- Botón de regreso a configuración -->
+      <button
+        id="btnHomeTop"
+        type="button"
+        onclick="returnToLobby()"
+        class="hidden px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+      >
+        Cambiar modo
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenedor principal -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+    <!-- Notificación no bloqueante (sin alert ni confirm) -->
+    <div id="toastBanner" class="hidden mb-4 px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-medium shadow-md flex items-center justify-between gap-3 animate-fade-in">
+      <span id="toastText">Mensaje</span>
+      <button type="button" onclick="hideToast()" class="text-xs uppercase tracking-wider font-bold text-teal-300 hover:text-white cursor-pointer">
+        Cerrar
+      </button>
+    </div>
+
+    <!-- PANTALLA 1: RECEPCIÓN Y CONFIGURACIÓN -->
+    <section id="lobbyScreen" class="space-y-6 animate-fade-in">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-teal-900/10 shadow-sm relative overflow-hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <div class="lg:col-span-8 space-y-3">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-teal-50 text-teal-800 border border-teal-200">
+              Entrenamiento clínico interactivo
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-snug">
+              Pon a prueba tu ojo clínico en anatomía, enfermedades, emergencias y zoonosis
+            </h2>
+            <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
+              Resuelve casos reales y preguntas rápidas con explicaciones médicas detalladas. Elige una especialidad o juega el turno mixto completo, activa el cronómetro o estudia a tu ritmo con comodines de guardia.
+            </p>
+          </div>
+
+          <!-- Ilustración SVG de estetoscopio y huella -->
+          <div class="lg:col-span-4 flex justify-center">
+            <div class="w-full max-w-[240px] rounded-2xl bg-gradient-to-br from-teal-700 to-teal-900 text-white p-5 shadow-md flex flex-col items-center text-center">
+              <svg class="w-16 h-16 mb-2 text-teal-200" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 12v14a14 14 0 0 0 28 0V12" />
+                <path d="M14 12h8" />
+                <path d="M42 12h8" />
+                <path d="M32 40v8a10 10 0 0 0 20 0v-6" />
+                <circle cx="52" cy="39" r="4" fill="currentColor" class="text-amber-300 stroke-none" />
+              </svg>
+              <span class="text-xs uppercase tracking-widest text-teal-200 font-semibold">Banco de casos</span>
+              <span class="text-2xl font-extrabold mt-0.5">24 Preguntas</span>
+              <span class="text-xs text-teal-100 mt-1">Cadete · Clínico · Especialista</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuración de partida -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Selección de categoría -->
+        <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-teal-900/10 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base sm:text-lg font-bold text-slate-900">1. Elige el área o modo mixto</h3>
+            <span class="text-xs font-semibold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full">5 opciones</span>
+          </div>
+
+          <div id="categoryGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Generado dinámicamente por JS -->
+          </div>
+        </div>
+
+        <!-- Opciones de dificultad y ritmo -->
+        <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-teal-900/10 shadow-sm flex flex-col justify-between space-y-5">
+          <div class="space-y-4">
+            <h3 class="text-base sm:text-lg font-bold text-slate-900">2. Nivel y ritmo de guardia</h3>
+
+            <!-- Dificultad -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Dificultad</label>
+              <div id="difficultyGroup" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
+                <button type="button" data-diff="ALL" class="diff-btn px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold border transition cursor-pointer">
+                  Todos los niveles
+                </button>
+                <button type="button" data-diff="Cadete" class="diff-btn px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold border transition cursor-pointer">
+                  Cadete
+                </button>
+                <button type="button" data-diff="Clínico" class="diff-btn px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold border transition cursor-pointer">
+                  Clínico
+                </button>
+                <button type="button" data-diff="Especialista" class="diff-btn px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold border transition cursor-pointer">
+                  Especialista
+                </button>
+              </div>
+            </div>
+
+            <!-- Temporizador vs Estudio relajado -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-sm font-bold text-slate-900" id="modeTitleText">Modo Guardia con Cronómetro</p>
+                  <p class="text-xs text-slate-600" id="modeDescText">25 segundos por pregunta + bonificación por rapidez y racha.</p>
+                </div>
+                <button
+                  id="toggleTimedBtn"
+                  type="button"
+                  role="switch"
+                  aria-checked="true"
+                  onclick="toggleTimedMode()"
+                  class="w-14 h-8 rounded-full bg-teal-700 p-1 transition flex items-center shrink-0 cursor-pointer"
+                >
+                  <span id="toggleKnob" class="w-6 h-6 rounded-full bg-white shadow transform translate-x-6 transition-transform"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Nombre opcional para el diploma -->
+            <div>
+              <label for="playerNameInput" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                Tu nombre o alias clínico (opcional)
+              </label>
+              <input
+                id="playerNameInput"
+                type="text"
+                maxlength="36"
+                placeholder="Ej. Dra. Sofía / Residente de Urgencias"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-teal-600"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onclick="startGame()"
+            class="w-full py-3.5 px-5 rounded-2xl bg-teal-700 hover:bg-teal-800 active:scale-[0.99] text-white font-extrabold text-base shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>Iniciar turno en VetTrivia</span>
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANTALLA 2: JUEGO EN CURSO -->
+    <section id="gameScreen" class="hidden space-y-5 animate-fade-in">
+      <!-- Barra de progreso y comodines -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-teal-900/10 shadow-sm space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+          <span class="font-bold text-slate-700">
+            Caso <span id="qCounter" class="text-teal-700 font-extrabold">1 / 10</span>
+          </span>
+          <div class="flex items-center gap-2">
+            <span id="qCategoryBadge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200">
+              Categoría
+            </span>
+            <span id="qDiffBadge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+              Nivel
+            </span>
+          </div>
+        </div>
+
+        <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full bg-teal-600 rounded-full transition-all duration-300" style="width: 10%;"></div>
+        </div>
+
+        <!-- Comodines clínicos -->
+        <div class="pt-1 flex flex-wrap items-center justify-between gap-2">
+          <span class="text-xs font-semibold text-slate-500">Comodines disponibles:</span>
+          <div class="flex flex-wrap gap-2">
+            <button
+              id="btnFiftyFifty"
+              type="button"
+              onclick="useFiftyFifty()"
+              class="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <span>Descartar dos</span>
+              <span id="countFifty" class="px-1.5 py-0.2 rounded-md bg-amber-200/80 text-amber-950">2</span>
+            </button>
+            <button
+              id="btnConsultColleague"
+              type="button"
+              onclick="useConsultColleague()"
+              class="px-3 py-1.5 rounded-xl text-xs font-bold bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-300 transition flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <span>Consulta al colega</span>
+              <span id="countColleague" class="px-1.5 py-0.2 rounded-md bg-teal-200/80 text-teal-950">2</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nota de consulta al colega (oculta hasta usarse) -->
+      <div id="colleagueBox" class="hidden bg-teal-900 text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-teal-700 animate-fade-in">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-xl bg-teal-700 flex items-center justify-center shrink-0 font-extrabold text-sm">
+            DR
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs uppercase tracking-wider font-bold text-teal-300">Nota del colega de guardia</p>
+            <p id="colleagueText" class="text-sm leading-relaxed text-teal-50"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjeta de pregunta y opciones -->
+      <div class="bg-white rounded-3xl p-6 sm:p-7 border border-teal-900/10 shadow-sm space-y-6">
+        <div class="space-y-2">
+          <p id="qSpeciesTag" class="text-xs font-bold uppercase tracking-wider text-teal-700">Especie / Contexto</p>
+          <h2 id="qPrompt" class="text-lg sm:text-2xl font-extrabold text-slate-900 leading-snug">
+            Cargando pregunta...
+          </h2>
+        </div>
+
+        <div id="optionsContainer" class="grid grid-cols-1 gap-3">
+          <!-- Opciones generadas por JS -->
+        </div>
+
+        <!-- Explicación clínica tras responder -->
+        <div id="explanationPanel" class="hidden rounded-2xl p-5 border animate-fade-in space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span id="resultHeadline" class="text-base font-extrabold">Resultado</span>
+            <span id="pointsEarnedBadge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-white/80"></span>
+          </div>
+          <p id="explanationText" class="text-sm leading-relaxed text-slate-800"></p>
+
+          <div class="pt-2 flex justify-end">
+            <button
+              id="btnNextQuestion"
+              type="button"
+              onclick="nextQuestion()"
+              class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition flex items-center gap-2 cursor-pointer"
+            >
+              <span id="nextBtnLabel">Siguiente caso</span>
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANTALLA 3: DIPLOMA CLÍNICO Y RESUMEN FINAL -->
+    <section id="summaryScreen" class="hidden space-y-6 animate-fade-in">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-teal-900/10 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+          <div class="space-y-1">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-900">
+              Evaluación de guardia completada
+            </span>
+            <h2 id="rankTitle" class="text-2xl sm:text-3xl font-extrabold text-slate-900">
+              Rango Clínico
+            </h2>
+            <p id="playerSummaryLine" class="text-sm text-slate-600 font-medium"></p>
+          </div>
+
+          <div class="px-5 py-4 rounded-2xl bg-teal-700 text-white text-center shrink-0 shadow-sm">
+            <div class="text-xs uppercase tracking-wider text-teal-200 font-semibold">Puntuación total</div>
+            <div id="finalScore" class="text-3xl font-extrabold">0</div>
+          </div>
+        </div>
+
+        <!-- Métricas principales -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div class="p-4 rounded-2xl bg-teal-50/80 border border-teal-200/70">
+            <p class="text-xs font-semibold text-teal-900">Aciertos</p>
+            <p id="statCorrect" class="text-2xl font-extrabold text-teal-700 mt-1">0/0</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <p class="text-xs font-semibold text-slate-600">Precisión</p>
+            <p id="statAccuracy" class="text-2xl font-extrabold text-slate-900 mt-1">0%</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80">
+            <p class="text-xs font-semibold text-amber-900">Mejor racha</p>
+            <p id="statBestStreak" class="text-2xl font-extrabold text-amber-700 mt-1">0x</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-rose-50/70 border border-rose-200/70">
+            <p class="text-xs font-semibold text-rose-900">Por repasar</p>
+            <p id="statMissed" class="text-2xl font-extrabold text-rose-700 mt-1">0</p>
+          </div>
+        </div>
+
+        <!-- Desglose por categoría -->
+        <div class="space-y-3">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Rendimiento por especialidad</h3>
+          <div id="categoryBreakdown" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Generado por JS -->
+          </div>
+        </div>
+
+        <!-- Mensaje para compartir -->
+        <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4 sm:p-5 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label for="shareMessageBox" class="text-xs font-bold uppercase tracking-wider text-slate-600">
+              Mensaje listo para enviar por WhatsApp, chat o red social
+            </label>
+            <button
+              type="button"
+              onclick="copyShareSummary()"
+              class="px-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs sm:text-sm font-bold transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+              <span>Copiar resumen</span>
+            </button>
+          </div>
+          <textarea
+            id="shareMessageBox"
+            rows="4"
+            readonly
+            class="w-full p-3 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm text-slate-800 leading-relaxed focus:outline-none"
+          ></textarea>
+        </div>
+
+        <!-- Botones de acción final -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-1">
+          <button
+            type="button"
+            onclick="startGame()"
+            class="flex-1 py-3.5 px-5 rounded-2xl bg-teal-700 hover:bg-teal-800 text-white font-extrabold text-sm sm:text-base transition cursor-pointer"
+          >
+            Jugar otra ronda
+          </button>
+          <button
+            type="button"
+            onclick="returnToLobby()"
+            class="flex-1 py-3.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm sm:text-base transition cursor-pointer"
+          >
+            Elegir otra categoría o nivel
+          </button>
+        </div>
+      </div>
+
+      <!-- Repaso de preguntas respondidas -->
+      <div class="bg-white rounded-3xl p-6 sm:p-7 border border-teal-900/10 shadow-sm space-y-4">
+        <h3 class="text-lg font-extrabold text-slate-900">Bitácora de repaso clínico</h3>
+        <div id="reviewLog" class="space-y-3">
+          <!-- Generado por JS -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-teal-900/10 bg-white py-4 px-4 text-center text-xs text-slate-500">
+    Clínica VetTrivia · Herramienta didáctica de medicina y rescate veterinario. No sustituye criterio clínico profesional.
+  </footer>
+
+  <script>
+    // =========================================================================
+    // BANCO DE 24 PREGUNTAS VETERINARIAS (4 CATEGORÍAS x 6 CASOS)
+    // =========================================================================
+    const CATEGORIES = {
+      ALL: {
+        id: 'ALL',
+        name: 'Turno Mixto de Clínica',
+        short: 'Mixto',
+        desc: 'Todas las especialidades mezcladas en una guardia completa.'
+      },
+      ANATOMIA: {
+        id: 'ANATOMIA',
+        name: 'Anatomía Veterinaria',
+        short: 'Anatomía',
+        desc: 'Osteología, órganos, rumiantes, aves, caninos y felinos.'
+      },
+      PATOLOGIA: {
+        id: 'PATOLOGIA',
+        name: 'Enfermedades y Patología',
+        short: 'Patología',
+        desc: 'Signos clínicos, agentes infecciosos y procesos patológicos.'
+      },
+      URGENCIAS: {
+        id: 'URGENCIAS',
+        name: 'Urgencias y Toxicología',
+        short: 'Urgencias',
+        desc: 'Tóxicos comunes, estabilización y emergencias de rescate.'
+      },
+      ZOONOSIS: {
+        id: 'ZOONOSIS',
+        name: 'Parasitología y Zoonosis',
+        short: 'Zoonosis',
+        desc: 'Parásitos internos/externos, vectores y salud pública.'
+      }
+    };
+
+    const QUESTION_BANK = [
+      // --- ANATOMÍA VETERINARIA (6) ---
+      {
+        id: 'anat-1',
+        category: 'ANATOMIA',
+        difficulty: 'Cadete',
+        species: 'Rumiantes · Digestivo',
+        prompt: '¿Cuál de los cuatro compartimentos estomacales del bovino es conocido como "redecilla" o "bonete" y presenta una mucosa en forma de panal?',
+        options: [
+          'El retículo',
+          'El abomaso',
+          'El omaso',
+          'El rumen'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Es el compartimento más craneal de los preestómagos y suele atrapar objetos metálicos pesados ingeridos por accidente.',
+        explanation: 'El retículo (o bonete) tiene un patrón poligonal semejante a un panal de abeja y participa en la mezcla del bolo y la propulsión hacia el omaso o el rumen.'
+      },
+      {
+        id: 'anat-2',
+        category: 'ANATOMIA',
+        difficulty: 'Cadete',
+        species: 'Aves · Respiratorio y esquelético',
+        prompt: '¿Qué característica anatómica facilita el vuelo y una oxigenación altamente eficiente en las aves?',
+        options: [
+          'Sacos aéreos y huesos neumáticos',
+          'Diafragma muscular completo y alveolos globulares',
+          'Doble circulación con ventrículo parcialmente tabicado',
+          'Ausencia de esternón y costillas flotantes'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Piensa en cómo se aligera el esqueleto y cómo fluye el aire de forma unidireccional en el pulmón parabronquial.',
+        explanation: 'Las aves cuentan con sacos aéreos conectados a los pulmones y huesos neumáticos (huecos con extensión aérea) que reducen peso y optimizan el intercambio gaseoso.'
+      },
+      {
+        id: 'anat-3',
+        category: 'ANATOMIA',
+        difficulty: 'Clínico',
+        species: 'Felinos · Sentidos y conducta',
+        prompt: '¿Qué estructura reflectante situada detrás de la retina mejora la visión nocturna en gatos y perros?',
+        options: [
+          'Tapetum lucidum',
+          'Membrana nictitante',
+          'Conducto nasolagrimal',
+          'Cuerpo ciliar'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Es la capa responsable del brillo ocular cuando incide luz en la oscuridad.',
+        explanation: 'El tapetum lucidum refleja la luz que no fue absorbida inicialmente por los fotorreceptores, dándoles una segunda oportunidad de estimular la retina en baja luminosidad.'
+      },
+      {
+        id: 'anat-4',
+        category: 'ANATOMIA',
+        difficulty: 'Clínico',
+        species: 'Equinos · Locomotor',
+        prompt: 'En el caballo, ¿cómo se denomina el aparato fibroso y elástico que permite permanecer de pie dormitando con mínimo esfuerzo muscular?',
+        options: [
+          'Aparato recíproco y aparato suspensor/pasivo',
+          'Plexo braquial y cinturón escapular óseo',
+          'Sínfisis isquiopúbica y ligamento redondo',
+          'Cartílago tiroides y fascia toracolumbar'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Coordina automáticamente la flexión y extensión de las articulaciones del miembro torácico y pelviano.',
+        explanation: 'El aparato pasivo (tendones, ligamentos y mecanismo recíproco) bloquea articulaciones clave para que el equino descanse de pie sin fatiga muscular continua.'
+      },
+      {
+        id: 'anat-5',
+        category: 'ANATOMIA',
+        difficulty: 'Especialista',
+        species: 'Caninos · Sistema urinario y reproductor',
+        prompt: '¿Qué hueso forma parte del pene en los cánidos (y en otros carnívoros, mustélidos o roedores) y rodea parcialmente la uretra peniana?',
+        options: [
+          'El os penis (o hueso peniano)',
+          'El hueso hioides',
+          'El hueso lagrimal',
+          'El hueso sesamoideo patelar'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'En radiografías laterales o ventrodorsales de abdomen caudal en machos caninos es un reparo anatómico clásico y también puede ser sitio de urolitos obstructivos.',
+        explanation: 'El os penis es un hueso esplácnico situado en el glande/cuerpo del pene de los cánidos, con un surco ventral por donde discurre la uretra.'
+      },
+      {
+        id: 'anat-6',
+        category: 'ANATOMIA',
+        difficulty: 'Especialista',
+        species: 'Rumiantes · Digestivo',
+        prompt: '¿Qué estructura en terneros lactantes permite que la leche pase directamente desde el esófago hacia el abomaso evitando el rumen?',
+        options: [
+          'El surco esofágico (o gotera esofágica)',
+          'El esfínter pilórico',
+          'La válvula ileocecal',
+          'El cardias ruminal'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Se cierra de manera refleja al succionar o al estimularse ciertos reflejos orofaríngeos.',
+        explanation: 'El surco esofágico forma un canal funcional que desvía la leche al abomaso, evitando fermentaciones indeseadas en el rumen aún en desarrollo.'
+      },
+
+      // --- ENFERMEDADES Y PATOLOGÍA (6) ---
+      {
+        id: 'pat-1',
+        category: 'PATOLOGIA',
+        difficulty: 'Cadete',
+        species: 'Caninos · Infecciosa',
+        prompt: '¿Qué enfermedad viral altamente contagiosa en cachorros se caracteriza típicamente por gastroenteritis hemorrágica grave, vómitos y leucopenia?',
+        options: [
+          'Parvovirosis canina',
+          'Otitis externa por Malassezia',
+          'Lipoma subcutáneo',
+          'Demodicosis localizada'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'El virus ataca células de rápida división como las criptas intestinales y precursores en médula ósea.',
+        explanation: 'El parvovirus canino (CPV-2) destruye el epitelio de las criptas intestinales y causa inmunosupresión/leucopenia, provocando diarrea sanguinolenta, deshidratación rápida y alto riesgo vital en cachorros no vacunados.'
+      },
+      {
+        id: 'pat-2',
+        category: 'PATOLOGIA',
+        difficulty: 'Cadete',
+        species: 'Felinos · Respiratorio y ocular',
+        prompt: '¿Cuál es uno de los agentes virales más frecuentes del complejo respiratorio felino, asociado también a queratitis ulcerativa dendrítica?',
+        options: [
+          'Herpesvirus felino tipo 1 (FHV-1)',
+          'Virus de la anemia infecciosa equina',
+          'Fiebre aftosa',
+          'Peste porcina africana'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Permanece latente en ganglios nerviosos (como el trigémino) y puede reactivarse ante situaciones de estrés.',
+        explanation: 'El FHV-1 causa estornudos, secreción oculonasal y lesiones corneales características; al ser un herpesvirus, establece latencia y puede reaparecer en periodos de estrés.'
+      },
+      {
+        id: 'pat-3',
+        category: 'PATOLOGIA',
+        difficulty: 'Clínico',
+        species: 'Equinos · Digestivo',
+        prompt: '¿Por qué los caballos presentan un riesgo elevado frente a obstrucciones o desplazamientos intestinales ("cólico equino") en comparación con otras especies?',
+        options: [
+          'No suelen vomitar y poseen flexuras intestinales estrechas y mesenterio largo en segmentos del colon',
+          'Carecen de intestino grueso y digieren todo en el estómago',
+          'Tienen tres vesículas biliares que se obstruyen con frecuencia',
+          'Su estómago se vacía cada 10 minutos sin fermentación'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'La anatomía del cardias equino dificulta enormemente el vómito y el colon mayor tiene giros con cambios de diámetro.',
+        explanation: 'La incapacidad práctica para vomitar, sumada a cambios de diámetro en flexuras del colon mayor y movilidad de asas, hace que el cólico equino requiera evaluación clínica rápida.'
+      },
+      {
+        id: 'pat-4',
+        category: 'PATOLOGIA',
+        difficulty: 'Clínico',
+        species: 'Caninos · Cardiología',
+        prompt: 'En perros de razas pequeñas o toy adultas, ¿cuál es la cardiopatía adquirida más frecuente?',
+        options: [
+          'Enfermedad mixomatosa de la válvula mitral (MMVD)',
+          'Tetralogía de Fallot en adultos mayores',
+          'Pericarditis tuberculosa',
+          'Insuficiencia tricuspídea congénita por parásitos'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Suele detectarse inicialmente como un soplo sistólico en el lado izquierdo del tórax (ápice/mitral).',
+        explanation: 'La degeneración mixomatosa de la válvula mitral provoca regurgitación mitral, sobrecarga de volumen en aurícula y ventrículo izquierdos y, en fases avanzadas, edema pulmonar.'
+      },
+      {
+        id: 'pat-5',
+        category: 'PATOLOGIA',
+        difficulty: 'Especialista',
+        species: 'Felinos · Endocrino y renal',
+        prompt: 'En un gato mayor con pérdida de peso, polifagia, taquicardia y nódulo cervical palpable, ¿qué alteración endocrina debes sospechar en primer lugar?',
+        options: [
+          'Hipertiroidismo felino',
+          'Hipoadrenocorticismo primario',
+          'Diabetes insípida central por trauma craneal',
+          'Hipotiroidismo congénito por exceso de yodo'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'El exceso de hormonas tiroideas eleva el metabolismo basal: comen más pero igualmente pierden masa corporal.',
+        explanation: 'El hipertiroidismo felino (frecuentemente por hiperplasia adenomatosa benigna de la tiroides) produce hipermetabolismo con polifagia, adelgazamiento, taquicardia e hipertensión sistémica.'
+      },
+      {
+        id: 'pat-6',
+        category: 'PATOLOGIA',
+        difficulty: 'Especialista',
+        species: 'Bovinos · Metabólico',
+        prompt: '¿Qué trastorno metabólico periparto en vacas lecheras de alta producción se asocia a hipocalcemia aguda, debilidad y decúbito sin fiebre?',
+        options: [
+          'Fiebre de la leche (hipocalcemia puerperal)',
+          'Tétanos por Clostridium tetani',
+          'Queratoconjuntivitis infecciosa',
+          'Rabia paralítica'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'El nombre "fiebre" es engañoso: la temperatura corporal suele estar normal o baja.',
+        explanation: 'Al iniciarse la lactancia aumenta bruscamente la demanda de calcio; si la movilización ósea y la absorción intestinal no compensan, ocurre hipocalcemia con paresia y decúbito.'
+      },
+
+      // --- URGENCIAS Y TOXICOLOGÍA (6) ---
+      {
+        id: 'urg-1',
+        category: 'URGENCIAS',
+        difficulty: 'Cadete',
+        species: 'Caninos · Toxicología doméstica',
+        prompt: '¿Qué compuestos presentes en el chocolate resultan tóxicos para perros y gatos al acumularse por metabolismo lento?',
+        options: [
+          'Metilxantinas (teobromina y cafeína)',
+          'Solanina y oxalatos insolubles',
+          'Cumarinas y vitamina K1',
+          'Glicósidos cianogénicos únicamente'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'El chocolate negro y el cacao en polvo concentran mucho más de este alcaloide que el chocolate con leche.',
+        explanation: 'La teobromina y la cafeína estimulan el sistema nervioso central y el miocardio, pudiendo causar vómitos, temblores, taquicardia, arritmias y convulsiones según la dosis y el peso.'
+      },
+      {
+        id: 'urg-2',
+        category: 'URGENCIAS',
+        difficulty: 'Cadete',
+        species: 'Felinos · Toxicología farmacológica',
+        prompt: '¿Por qué el paracetamol (acetaminofén) es extremadamente peligroso y potencialmente mortal incluso en dosis bajas en gatos?',
+        options: [
+          'Los gatos tienen deficiencia de glucuronidación hepática, generando metabolitos tóxicos y metahemoglobinemia',
+          'Provoca parálisis inmediata de las cuerdas vocales',
+          'Destruye el esmalte dental en menos de una hora',
+          'Actúa como anticoagulante irreversible en el intestino'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Afecta gravemente la capacidad de los glóbulos rojos para transportar oxígeno y daña el hígado.',
+        explanation: 'La vía de glucuronidación en felinos es limitada; se acumulan metabolitos reactivos que causan necrosis hepática y daño oxidativo a eritrocitos (metahemoglobinemia y cuerpos de Heinz).'
+      },
+      {
+        id: 'urg-3',
+        category: 'URGENCIAS',
+        difficulty: 'Clínico',
+        species: 'Caninos · Rescate y digestivo',
+        prompt: 'En un perro de raza grande con arcadas improductivas, abdomen distendido y timpanismo, ¿ante qué emergencia quirúrgica estás?',
+        options: [
+          'Dilatación-vólvulo gástrico (GDV)',
+          'Estreñimiento simple por dieta seca',
+          'Gastritis leve por ayuno',
+          'Cistitis bacteriana aguda'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'El estómago se llena de gas/líquido y puede rotar, comprometiendo el retorno venoso y la perfusión.',
+        explanation: 'El GDV es una urgencia crítica: la distensión gástrica y la torsión comprometen el retorno venoso hacia el corazón, generan shock obstructivo y pueden provocar isquemia/necrosis gástrica.'
+      },
+      {
+        id: 'urg-4',
+        category: 'URGENCIAS',
+        difficulty: 'Clínico',
+        species: 'Fauna y mascotas · Toxicología ambiental',
+        prompt: 'Si rescatas un animal con salivación profusa, miosis puntiforme, bradicardia, broncorrea y fasciculaciones musculares, ¿qué grupo de tóxicos sospechas?',
+        options: [
+          'Inhibidores de la colinesterasa (organofosforados o carbamatos)',
+          'Rodenticidas anticoagulantes de segunda generación',
+          'Uvas y pasas',
+          'Ivermectina a dosis terapéutica'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Piensa en un síndrome colinérgico muscarínico y nicotínico por exceso de acetilcolina en la sinapsis.',
+        explanation: 'Los organofosforados y carbamatos inhiben la acetilcolinesterasa, acumulando acetilcolina y desencadenando signos muscarínicos (secreciones, miosis, bradicardia) y neuromusculares.'
+      },
+      {
+        id: 'urg-5',
+        category: 'URGENCIAS',
+        difficulty: 'Especialista',
+        species: 'Felinos · Rescate y obstrucción',
+        prompt: 'En un gato macho rescatado que entra y sale de la bandeja sanitaria sin orinar, vocaliza y presenta letargia, ¿qué prioridad clínica inmediata tienes?',
+        options: [
+          'Evaluar obstrucción uretral y controlar hiperpotasemia / cardiotoxicidad',
+          'Administrar laxante oral y esperar 48 horas en casa',
+          'Realizar limpieza dental de rutina',
+          'Aplicar vacuna antirrábica de inmediato'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'La retención urinaria aguda impide excretar potasio, lo que puede alterar gravemente el ritmo cardíaco.',
+        explanation: 'La obstrucción uretral felina es una emergencia vital: provoca uremia postrenal y puede elevar peligrosamente el potasio sérico, causando arritmias fatales si no se descomprime y estabiliza a tiempo.'
+      },
+      {
+        id: 'urg-6',
+        category: 'URGENCIAS',
+        difficulty: 'Especialista',
+        species: 'Caninos y felinos · Toxicología',
+        prompt: '¿Qué antídoto específico se utiliza en intoxicaciones por rodenticidas anticoagulantes (antagonistas de la vitamina K)?',
+        options: [
+          'Vitamina K1 (fitomenadiona)',
+          'Azul de metileno',
+          'Atropina exclusivamente',
+          'Bicarbonato de sodio hipertónico'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Es necesario para reactivar la carboxilación de los factores de coagulación II, VII, IX y X.',
+        explanation: 'Los rodenticidas anticoagulantes bloquean el ciclo de la vitamina K; la vitamina K1 permite restaurar la síntesis de factores de coagulación funcionales durante el tratamiento.'
+      },
+
+      // --- PARASITOLOGÍA Y ZOONOSIS (6) ---
+      {
+        id: 'zoo-1',
+        category: 'ZOONOSIS',
+        difficulty: 'Cadete',
+        species: 'Caninos y felinos · Zoonosis',
+        prompt: '¿Cuál es la medida preventiva más eficaz y obligatoria para controlar la rabia en animales domésticos y proteger la salud pública?',
+        options: [
+          'Vacunación antirrábica periódica y control de mordeduras/observación según norma',
+          'Baños con agua tibia cada semana',
+          'Dar suplementos de calcio en el alimento',
+          'Evitar pasear de día'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'La rabia es una encefalitis viral zoonótica casi siempre mortal una vez que aparecen los signos clínicos.',
+        explanation: 'La vacunación antirrábica sistemática en perros, gatos y otras especies susceptibles es el pilar fundamental para interrumpir la transmisión y prevenir casos humanos.'
+      },
+      {
+        id: 'zoo-2',
+        category: 'ZOONOSIS',
+        difficulty: 'Cadete',
+        species: 'Caninos · Ectoparásitos',
+        prompt: '¿Qué ectoparásito es el hospedador intermediario habitual del cestodo Dipylidium caninum en perros y gatos?',
+        options: [
+          'La pulga (p. ej., Ctenocephalides felis)',
+          'El mosquito Anopheles',
+          'La garrapata blanda de aves',
+          'El ácaro del oído Otodectes cynotis'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'El animal se infecta al ingerir el insecto adulto que contiene el cisticercoide en su interior.',
+        explanation: 'Las larvas de pulga ingieren huevos de Dipylidium caninum; al convertirse en pulga adulta albergan el estadio infectante, y el hospedador se contagia al acicalarse o morderse.'
+      },
+      {
+        id: 'zoo-3',
+        category: 'ZOONOSIS',
+        difficulty: 'Clínico',
+        species: 'Felinos y salud pública · Protozoo',
+        prompt: 'Respecto a Toxoplasma gondii y los gatos, ¿cuál afirmación es correcta en medicina preventiva y zoonosis?',
+        options: [
+          'Los gatos eliminan ooquistes no esporulados en heces por un periodo limitado y la higiene de areneros y cocción de carnes son clave',
+          'Todo gato infectado elimina ooquistes de por vida todos los días',
+          'Se transmite únicamente por mordedura de murciélago',
+          'No afecta a ningún mamífero ni ave'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Los ooquistes recién eliminados requieren días y condiciones ambientales adecuadas para esporular y volverse infectantes.',
+        explanation: 'El gato es hospedador definitivo, pero elimina ooquistes durante una ventana corta de su vida y requieren esporulación; limpiar el arenero a diario, usar guantes y cocinar bien las carnes reduce drásticamente el riesgo.'
+      },
+      {
+        id: 'zoo-4',
+        category: 'ZOONOSIS',
+        difficulty: 'Clínico',
+        species: 'Caninos y salud pública · Bacteriana',
+        prompt: '¿Qué bacteria zoonótica se asocia frecuentemente a agua o suelos contaminados con orina de roedores u otros animales y puede causar daño renal y hepático?',
+        options: [
+          'Leptospira spp. (leptospirosis)',
+          'Brucella abortus',
+          'Mycobacterium avium',
+          'Bordetella bronchiseptica'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'El riesgo aumenta tras inundaciones, encharcamientos o contacto con agua estancada.',
+        explanation: 'Las espiroquetas del género Leptospira se eliminan por orina y penetran por mucosas o piel lesionada/reblandecida, pudiendo provocar lesión renal aguda, ictericia y vasculitis.'
+      },
+      {
+        id: 'zoo-5',
+        category: 'ZOONOSIS',
+        difficulty: 'Especialista',
+        species: 'Caninos · Metaxénica / Vectorial',
+        prompt: '¿Qué parásito habita principalmente en arterias pulmonares y cavidades derechas del corazón en perros y se transmite por mosquitos culícidos?',
+        options: [
+          'Dirofilaria immitis (gusano del corazón)',
+          'Trichuris vulpis',
+          'Giardia duodenalis',
+          'Taenia pisiformis'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Los mosquitos transmiten las larvas infectantes (L3) durante la picadura; la prevención mensual con lactonas macrocíclicas es esencial.',
+        explanation: 'Dirofilaria immitis causa dirofilariosis cardiopulmonar: los adultos se alojan en arterias pulmonares y corazón derecho, generando endoarteritis, hipertensión pulmonar e insuficiencia cardíaca.'
+      },
+      {
+        id: 'zoo-6',
+        category: 'ZOONOSIS',
+        difficulty: 'Especialista',
+        species: 'Zoonosis y fauna · Parasitología',
+        prompt: '¿Cuál es el ciclo o vía clásica de transmisión de Echinococcus granulosus (agente de la hidatidosis / equinococosis quística)?',
+        options: [
+          'Cánidos hospedadores definitivos eliminan huevos en heces; herbívoros/humanos ingieren huevos y desarrollan quistes hidatídicos',
+          'Mosquitos inoculan quistes directamente en el músculo',
+          'Transmisión exclusiva por contacto con plumas de aves',
+          'Se contagia únicamente por beber leche pasteurizada'
+        ],
+        answerIndex: 0,
+        colleagueHint: 'Evitar alimentar perros con vísceras crudas infectadas de ovinos, bovinos o cerdos corta el ciclo.',
+        explanation: 'Los perros albergan el cestodo adulto en el intestino y liberan huevos en las heces; los hospedadores intermediarios (incluidos los humanos) desarrollan quistes larvarios principalmente en hígado y pulmones.'
+      }
+    ];
+
+    // =========================================================================
+    // ESTADO DEL JUEGO
+    // =========================================================================
+    const state = {
+      selectedCategory: 'ALL',
+      selectedDifficulty: 'ALL',
+      timedMode: true,
+      playerName: '',
+      questions: [],
+      currentIndex: 0,
+      score: 0,
+      streak: 0,
+      bestStreak: 0,
+      correctCount: 0,
+      fiftyLeft: 2,
+      colleagueLeft: 2,
+      timerSeconds: 25,
+      timerId: null,
+      answeredCurrent: false,
+      history: []
+    };
+
+    const DIFFICULTY_POINTS = {
+      'Cadete': 100,
+      'Clínico': 150,
+      'Especialista': 220
+    };
+
+    const DIFFICULTY_TIME = {
+      'Cadete': 25,
+      'Clínico': 25,
+      'Especialista': 30
+    };
+
+    // =========================================================================
+    // INICIALIZACIÓN DE LA INTERFAZ DE CONFIGURACIÓN
+    // =========================================================================
+    function initLobby() {
+      renderCategoryCards();
+      updateDifficultyButtons();
+      updateTimedSwitchUI();
+    }
+
+    function renderCategoryCards() {
+      const container = document.getElementById('categoryGrid');
+      container.innerHTML = '';
+
+      Object.values(CATEGORIES).forEach((cat) => {
+        const count = cat.id === 'ALL'
+          ? QUESTION_BANK.length
+          : QUESTION_BANK.filter(q => q.category === cat.id).length;
+
+        const isSelected = state.selectedCategory === cat.id;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => {
+          state.selectedCategory = cat.id;
+          renderCategoryCards();
+        };
+        btn.className = [
+          'text-left p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between gap-2',
+          isSelected
+            ? 'bg-teal-50 border-teal-700 ring-2 ring-teal-700/20 shadow-sm'
+            : 'bg-white border-slate-200 hover:border-teal-400 hover:bg-slate-50/70'
+        ].join(' ');
+
+        btn.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-extrabold text-sm ${isSelected ? 'text-teal-900' : 'text-slate-900'}">${cat.name}</span>
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${isSelected ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-600'}">${count} casos</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">${cat.desc}</p>
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    function updateDifficultyButtons() {
+      document.querySelectorAll('.diff-btn').forEach((btn) => {
+        const diff = btn.getAttribute('data-diff');
+        const active = state.selectedDifficulty === diff;
+        btn.className = [
+          'diff-btn px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold border transition cursor-pointer',
+          active
+            ? 'bg-teal-700 text-white border-teal-700 shadow-sm'
+            : 'bg-white text-slate-700 border-slate-200 hover:border-teal-400'
+        ].join(' ');
+        btn.onclick = () => {
+          state.selectedDifficulty = diff;
+          updateDifficultyButtons();
+        };
+      });
+    }
+
+    function toggleTimedMode() {
+      state.timedMode = !state.timedMode;
+      updateTimedSwitchUI();
+    }
+
+    function updateTimedSwitchUI() {
+      const btn = document.getElementById('toggleTimedBtn');
+      const knob = document.getElementById('toggleKnob');
+      const title = document.getElementById('modeTitleText');
+      const desc = document.getElementById('modeDescText');
+
+      btn.setAttribute('aria-checked', String(state.timedMode));
+      if (state.timedMode) {
+        btn.className = 'w-14 h-8 rounded-full bg-teal-700 p-1 transition flex items-center shrink-0 cursor-pointer';
+        knob.className = 'w-6 h-6 rounded-full bg-white shadow transform translate-x-6 transition-transform';
+        title.textContent = 'Modo Guardia con Cronómetro';
+        desc.textContent = 'Tiempo límite por pregunta + bonificación por rapidez y racha.';
+      } else {
+        btn.className = 'w-14 h-8 rounded-full bg-slate-300 p-1 transition flex items-center shrink-0 cursor-pointer';
+        knob.className = 'w-6 h-6 rounded-full bg-white shadow transform translate-x-0 transition-transform';
+        title.textContent = 'Modo Estudio Relajado';
+        desc.textContent = 'Sin cronómetro. Ideal para repasar conceptos y leer con calma.';
+      }
+    }
+
+    // =========================================================================
+    // LÓGICA DE PARTIDA
+    // =========================================================================
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function buildQuestionDeck() {
+      let pool = QUESTION_BANK.filter((q) => {
+        const catOk = state.selectedCategory === 'ALL' || q.category === state.selectedCategory;
+        const diffOk = state.selectedDifficulty === 'ALL' || q.difficulty === state.selectedDifficulty;
+        return catOk && diffOk;
+      });
+
+      // Si el filtro específico tiene muy pocas preguntas, complementamos con la misma categoría o banco general
+      if (pool.length < 5) {
+        const fallback = QUESTION_BANK.filter(
+          q => !pool.some(existing => existing.id === q.id) &&
+          (state.selectedCategory === 'ALL' || q.category === state.selectedCategory)
+        );
+        pool = pool.concat(shuffleArray(fallback));
+      }
+
+      if (pool.length < 5) {
+        const rest = QUESTION_BANK.filter(q => !pool.some(existing => existing.id === q.id));
+        pool = pool.concat(shuffleArray(rest));
+      }
+
+      const shuffled = shuffleArray(pool);
+      const maxQuestions = state.selectedCategory === 'ALL' && state.selectedDifficulty === 'ALL'
+        ? Math.min(12, shuffled.length)
+        : shuffled.length;
+
+      return shuffled.slice(0, maxQuestions).map((q) => {
+        // Mezclar opciones manteniendo rastro de cuál es la correcta
+        const indexedOptions = q.options.map((text, idx) => ({
+          text,
+          isCorrect: idx === q.answerIndex
+        }));
+        const mixed = shuffleArray(indexedOptions);
+        return {
+          ...q,
+          mixedOptions: mixed,
+          correctMixedIndex: mixed.findIndex(item => item.isCorrect)
+        };
+      });
+    }
+
+    function startGame() {
+      clearTimer();
+      hideToast();
+
+      const rawName = document.getElementById('playerNameInput').value.trim();
+      state.playerName = rawName || 'Colega de Guardia';
+      state.questions = buildQuestionDeck();
+      state.currentIndex = 0;
+      state.score = 0;
+      state.streak = 0;
+      state.bestStreak = 0;
+      state.correctCount = 0;
+      state.fiftyLeft = 2;
+      state.colleagueLeft = 2;
+      state.history = [];
+
+      document.getElementById('lobbyScreen').classList.add('hidden');
+      document.getElementById('summaryScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+
+      document.getElementById('liveHud').classList.remove('hidden');
+      document.getElementById('liveHud').classList.add('flex');
+      document.getElementById('btnHomeTop').classList.remove('hidden');
+
+      updateHud();
+      renderCurrentQuestion();
+    }
+
+    function returnToLobby() {
+      clearTimer();
+      document.getElementById('gameScreen').classList.add('hidden');
+      document.getElementById('summaryScreen').classList.add('hidden');
+      document.getElementById('lobbyScreen').classList.remove('hidden');
+      document.getElementById('liveHud').classList.add('hidden');
+      document.getElementById('liveHud').classList.remove('flex');
+      document.getElementById('btnHomeTop').classList.add('hidden');
+      renderCategoryCards();
+      updateDifficultyButtons();
+    }
+
+    function renderCurrentQuestion() {
+      clearTimer();
+      state.answeredCurrent = false;
+
+      const q = state.questions[state.currentIndex];
+      const total = state.questions.length;
+
+      document.getElementById('qCounter').textContent = `${state.currentIndex + 1} / ${total}`;
+      document.getElementById('progressBar').style.width = `${((state.currentIndex + 1) / total) * 100}%`;
+
+      const catObj = CATEGORIES[q.category] || { name: q.category };
+      document.getElementById('qCategoryBadge').textContent = catObj.name;
+      document.getElementById('qDiffBadge').textContent = `Nivel ${q.difficulty}`;
+      document.getElementById('qSpeciesTag').textContent = q.species;
+      document.getElementById('qPrompt').textContent = q.prompt;
+
+      // Ocultar caja del colega y panel de explicación
+      document.getElementById('colleagueBox').classList.add('hidden');
+      document.getElementById('colleagueText').textContent = '';
+      document.getElementById('explanationPanel').classList.add('hidden');
+
+      updateLifelineButtons();
+
+      // Renderizar opciones A, B, C, D
+      const letters = ['A', 'B', 'C', 'D'];
+      const container = document.getElementById('optionsContainer');
+      container.innerHTML = '';
+
+      q.mixedOptions.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('data-option-index', String(idx));
+        btn.onclick = () => selectOption(idx);
+        btn.className = [
+          'option-card w-full text-left p-4 rounded-2xl border-2 border-slate-200 bg-white hover:border-teal-600 hover:bg-teal-50/40',
+          'flex items-center gap-3.5 cursor-pointer'
+        ].join(' ');
+
+        btn.innerHTML = `
+          <span class="option-letter w-8 h-8 rounded-xl bg-slate-100 text-slate-800 font-extrabold text-sm flex items-center justify-center shrink-0">
+            ${letters[idx]}
+          </span>
+          <span class="option-text text-sm sm:text-base font-semibold text-slate-800 leading-snug">
+            ${opt.text}
+          </span>
+        `;
+        container.appendChild(btn);
+      });
+
+      // Configurar cronómetro si está activo
+      const timerBox = document.getElementById('hudTimerBox');
+      if (state.timedMode) {
+        timerBox.classList.remove('hidden');
+        timerBox.classList.add('flex');
+        state.timerSeconds = DIFFICULTY_TIME[q.difficulty] || 25;
+        document.getElementById('hudTimer').textContent = `${state.timerSeconds}s`;
+        timerBox.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1.5';
+
+        state.timerId = setInterval(() => {
+          state.timerSeconds -= 1;
+          document.getElementById('hudTimer').textContent = `${Math.max(0, state.timerSeconds)}s`;
+
+          if (state.timerSeconds <= 6 && state.timerSeconds > 0) {
+            timerBox.className = 'px-3 py-1.5 rounded-xl bg-rose-50 text-rose-800 border border-rose-300 flex items-center gap-1.5 animate-pulse';
+          }
+
+          if (state.timerSeconds <= 0) {
+            clearTimer();
+            handleTimeOut();
+          }
+        }, 1000);
+      } else {
+        timerBox.classList.add('hidden');
+        timerBox.classList.remove('flex');
+      }
+    }
+
+    function clearTimer() {
+      if (state.timerId !== null) {
+        clearInterval(state.timerId);
+        state.timerId = null;
+      }
+    }
+
+    function updateLifelineButtons() {
+      const btnFifty = document.getElementById('btnFiftyFifty');
+      const btnColleague = document.getElementById('btnConsultColleague');
+      document.getElementById('countFifty').textContent = String(state.fiftyLeft);
+      document.getElementById('countColleague').textContent = String(state.colleagueLeft);
+
+      btnFifty.disabled = state.answeredCurrent || state.fiftyLeft <= 0;
+      btnColleague.disabled = state.answeredCurrent || state.colleagueLeft <= 0 || !document.getElementById('colleagueBox').classList.contains('hidden');
+    }
+
+    function useFiftyFifty() {
+      if (state.answeredCurrent || state.fiftyLeft <= 0) return;
+
+      const q = state.questions[state.currentIndex];
+      const wrongIndices = q.mixedOptions
+        .map((_, idx) => idx)
+        .filter(idx => idx !== q.correctMixedIndex);
+
+      const toEliminate = shuffleArray(wrongIndices).slice(0, 2);
+
+      toEliminate.forEach((idx) => {
+        const btn = document.querySelector(`[data-option-index="${idx}"]`);
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.remove('hover:border-teal-600', 'hover:bg-teal-50/40', 'cursor-pointer');
+          btn.classList.add('opacity-35', 'bg-slate-50', 'border-slate-200', 'line-through', 'cursor-not-allowed');
+        }
+      });
+
+      state.fiftyLeft -= 1;
+      updateLifelineButtons();
+      showToast('Comodín "Descartar dos" aplicado: se eliminaron dos opciones incorrectas.');
+    }
+
+    function useConsultColleague() {
+      if (state.answeredCurrent || state.colleagueLeft <= 0) return;
+
+      const q = state.questions[state.currentIndex];
+      state.colleagueLeft -= 1;
+
+      const box = document.getElementById('colleagueBox');
+      document.getElementById('colleagueText').textContent = q.colleagueHint;
+      box.classList.remove('hidden');
+
+      updateLifelineButtons();
+    }
+
+    function handleTimeOut() {
+      if (state.answeredCurrent) return;
+      state.answeredCurrent = true;
+      state.streak = 0;
+
+      const q = state.questions[state.currentIndex];
+      lockAndHighlightOptions(null, q.correctMixedIndex);
+
+      state.history.push({
+        question: q,
+        selectedIndex: null,
+        timedOut: true,
+        isCorrect: false,
+        pointsEarned: 0
+      });
+
+      updateHud();
+      showExplanationPanel({
+        status: 'timeout',
+        headline: 'Tiempo agotado en la guardia',
+        pointsText: '+0 pts · Racha reiniciada',
+        explanation: q.explanation
+      });
+    }
+
+    function selectOption(chosenIdx) {
+      if (state.answeredCurrent) return;
+      state.answeredCurrent = true;
+      clearTimer();
+
+      const q = state.questions[state.currentIndex];
+      const isCorrect = chosenIdx === q.correctMixedIndex;
+
+      lockAndHighlightOptions(chosenIdx, q.correctMixedIndex);
+
+      let pointsEarned = 0;
+      if (isCorrect) {
+        state.correctCount += 1;
+        state.streak += 1;
+        if (state.streak > state.bestStreak) {
+          state.bestStreak = state.streak;
+        }
+
+        const base = DIFFICULTY_POINTS[q.difficulty] || 120;
+        const streakBonus = (state.streak - 1) * 25;
+        const speedBonus = state.timedMode ? Math.max(0, state.timerSeconds * 3) : 0;
+        pointsEarned = base + streakBonus + speedBonus;
+        state.score += pointsEarned;
+      } else {
+        state.streak = 0;
+      }
+
+      state.history.push({
+        question: q,
+        selectedIndex: chosenIdx,
+        timedOut: false,
+        isCorrect,
+        pointsEarned
+      });
+
+      updateHud();
+      updateLifelineButtons();
+
+      if (isCorrect) {
+        showExplanationPanel({
+          status: 'correct',
+          headline: '¡Diagnóstico acertado!',
+          pointsText: `+${pointsEarned} pts (Racha ${state.streak}x)`,
+          explanation: q.explanation
+        });
+      } else {
+        showExplanationPanel({
+          status: 'wrong',
+          headline: 'Respuesta incorrecta — revisemos el caso',
+          pointsText: '+0 pts · Racha reiniciada',
+          explanation: q.explanation
+        });
+      }
+    }
+
+    function lockAndHighlightOptions(chosenIdx, correctIdx) {
+      document.querySelectorAll('#optionsContainer [data-option-index]').forEach((btn) => {
+        const idx = Number(btn.getAttribute('data-option-index'));
+        btn.disabled = true;
+        btn.classList.remove('hover:border-teal-600', 'hover:bg-teal-50/40', 'cursor-pointer');
+
+        const letterBadge = btn.querySelector('.option-letter');
+
+        if (idx === correctIdx) {
+          btn.className = 'option-card w-full text-left p-4 rounded-2xl border-2 border-emerald-600 bg-emerald-50 flex items-center gap-3.5';
+          if (letterBadge) {
+            letterBadge.className = 'option-letter w-8 h-8 rounded-xl bg-emerald-600 text-white font-extrabold text-sm flex items-center justify-center shrink-0';
+          }
+        } else if (idx === chosenIdx && idx !== correctIdx) {
+          btn.className = 'option-card w-full text-left p-4 rounded-2xl border-2 border-rose-600 bg-rose-50 flex items-center gap-3.5';
+          if (letterBadge) {
+            letterBadge.className = 'option-letter w-8 h-8 rounded-xl bg-rose-600 text-white font-extrabold text-sm flex items-center justify-center shrink-0';
+          }
+        } else {
+          btn.classList.add('opacity-55');
+        }
+      });
+    }
+
+    function showExplanationPanel({ status, headline, pointsText, explanation }) {
+      const panel = document.getElementById('explanationPanel');
+      const headEl = document.getElementById('resultHeadline');
+      const ptsEl = document.getElementById('pointsEarnedBadge');
+      const expEl = document.getElementById('explanationText');
+      const nextLabel = document.getElementById('nextBtnLabel');
+
+      panel.classList.remove('hidden');
+
+      if (status === 'correct') {
+        panel.className = 'rounded-2xl p-5 border border-emerald-300 bg-emerald-50/90 animate-fade-in space-y-3';
+        headEl.className = 'text-base font-extrabold text-emerald-950';
+      } else if (status === 'timeout') {
+        panel.className = 'rounded-2xl p-5 border border-amber-300 bg-amber-50/90 animate-fade-in space-y-3';
+        headEl.className = 'text-base font-extrabold text-amber-950';
+      } else {
+        panel.className = 'rounded-2xl p-5 border border-rose-300 bg-rose-50/90 animate-fade-in space-y-3';
+        headEl.className = 'text-base font-extrabold text-rose-950';
+      }
+
+      headEl.textContent = headline;
+      ptsEl.textContent = pointsText;
+      expEl.textContent = explanation;
+
+      const isLast = state.currentIndex >= state.questions.length - 1;
+      nextLabel.textContent = isLast ? 'Ver diploma y resumen' : 'Siguiente caso';
+    }
+
+    function nextQuestion() {
+      if (state.currentIndex + 1 < state.questions.length) {
+        state.currentIndex += 1;
+        renderCurrentQuestion();
+      } else {
+        finishGame();
+      }
+    }
+
+    function updateHud() {
+      document.getElementById('hudScore').textContent = String(state.score);
+      document.getElementById('hudStreak').textContent = `${state.streak}x`;
+    }
+
+    // =========================================================================
+    // RESUMEN FINAL, DIPLOMA Y COMPARTIR
+    // =========================================================================
+    function getClinicalRank(accuracy) {
+      if (accuracy >= 90) {
+        return {
+          title: 'Jefe de Clínica y Rescate Veterinario',
+          badge: 'Excelencia diagnóstica'
+        };
+      }
+      if (accuracy >= 75) {
+        return {
+          title: 'Médico Veterinario de Guardia',
+          badge: 'Sólido criterio clínico'
+        };
+      }
+      if (accuracy >= 50) {
+        return {
+          title: 'Residente en Formación Activa',
+          badge: 'Buen avance en rotación'
+        };
+      }
+      return {
+        title: 'Cadete de Primer Año en Prácticas',
+        badge: 'Gran punto de partida para repasar'
+      };
+    }
+
+    function finishGame() {
+      clearTimer();
+      document.getElementById('gameScreen').classList.add('hidden');
+      document.getElementById('summaryScreen').classList.remove('hidden');
+      document.getElementById('liveHud').classList.add('hidden');
+      document.getElementById('liveHud').classList.remove('flex');
+
+      const total = state.questions.length;
+      const accuracy = total > 0 ? Math.round((state.correctCount / total) * 100) : 0;
+      const missed = total - state.correctCount;
+      const rank = getClinicalRank(accuracy);
+
+      document.getElementById('rankTitle').textContent = rank.title;
+      document.getElementById('playerSummaryLine').textContent = `${state.playerName} · ${rank.badge}`;
+      document.getElementById('finalScore').textContent = String(state.score);
+      document.getElementById('statCorrect').textContent = `${state.correctCount}/${total}`;
+      document.getElementById('statAccuracy').textContent = `${accuracy}%`;
+      document.getElementById('statBestStreak').textContent = `${state.bestStreak}x`;
+      document.getElementById('statMissed').textContent = String(missed);
+
+      renderCategoryBreakdown();
+      renderReviewLog();
+      buildShareSummaryText(rank.title, accuracy, total);
+    }
+
+    function renderCategoryBreakdown() {
+      const container = document.getElementById('categoryBreakdown');
+      container.innerHTML = '';
+
+      const catKeys = ['ANATOMIA', 'PATOLOGIA', 'URGENCIAS', 'ZOONOSIS'];
+      catKeys.forEach((key) => {
+        const items = state.history.filter(h => h.question.category === key);
+        if (items.length === 0) return;
+
+        const right = items.filter(h => h.isCorrect).length;
+        const pct = Math.round((right / items.length) * 100);
+        const catName = CATEGORIES[key]?.name || key;
+
+        const card = document.createElement('div');
+        card.className = 'p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-2';
+        card.innerHTML = `
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-bold text-slate-800">${catName}</span>
+            <span class="font-extrabold text-teal-700">${right}/${items.length} (${pct}%)</span>
+          </div>
+          <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div class="h-full bg-teal-600 rounded-full" style="width: ${pct}%;"></div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderReviewLog() {
+      const logEl = document.getElementById('reviewLog');
+      logEl.innerHTML = '';
+
+      state.history.forEach((entry, i) => {
+        const q = entry.question;
+        const correctText = q.mixedOptions[q.correctMixedIndex]?.text || '';
+        const chosenText = entry.timedOut
+          ? 'Tiempo agotado'
+          : (q.mixedOptions[entry.selectedIndex]?.text || 'Sin respuesta');
+
+        const item = document.createElement('div');
+        item.className = [
+          'p-4 rounded-2xl border space-y-1.5',
+          entry.isCorrect ? 'border-emerald-200 bg-emerald-50/40' : 'border-rose-200 bg-rose-50/40'
+        ].join(' ');
+
+        item.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
+            <span class="text-slate-600">Caso ${i + 1} · ${CATEGORIES[q.category]?.short || q.category} (${q.difficulty})</span>
+            <span class="${entry.isCorrect ? 'text-emerald-700' : 'text-rose-700'}">
+              ${entry.isCorrect ? `Correcto (+${entry.pointsEarned} pts)` : 'Por reforzar'}
+            </span>
+          </div>
+          <p class="text-sm font-bold text-slate-900">${q.prompt}</p>
+          <p class="text-xs text-slate-700"><span class="font-semibold">Tu respuesta:</span> ${chosenText}</p>
+          ${!entry.isCorrect ? `<p class="text-xs text-emerald-900"><span class="font-semibold">Respuesta correcta:</span> ${correctText}</p>` : ''}
+          <p class="text-xs text-slate-600 leading-relaxed pt-1">${q.explanation}</p>
+        `;
+        logEl.appendChild(item);
+      });
+    }
+
+    function buildShareSummaryText(rankTitle, accuracy, total) {
+      const pageUrl = window.location.href && window.location.href.startsWith('http')
+        ? window.location.href
+        : 'Clínica VetTrivia: Anatomía, Patología y Rescate';
+
+      const text = [
+        `Clínica VetTrivia · ${state.playerName}`,
+        `Rango: ${rankTitle} | Puntos: ${state.score} | Aciertos: ${state.correctCount}/${total} (${accuracy}%) | Mejor racha: ${state.bestStreak}x`,
+        `¿Superas mi guardia en anatomía, patología, urgencias y zoonosis? -> ${pageUrl}`
+      ].join('\n');
+
+      document.getElementById('shareMessageBox').value = text;
+    }
+
+    function copyShareSummary() {
+      const box = document.getElementById('shareMessageBox');
+      box.focus();
+      box.select();
+
+      let copied = false;
+      try {
+        copied = document.execCommand('copy');
+      } catch (err) {
+        copied = false;
+      }
+
+      if (copied) {
+        showToast('Resumen copiado al portapapeles. ¡Ya puedes pegarlo y enviarlo!');
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(box.value)
+          .then(() => showToast('Resumen copiado al portapapeles.'))
+          .catch(() => showToast('Selecciona el texto de la caja y cópialo manualmente.'));
+      } else {
+        showToast('Selecciona el texto de la caja y cópialo manualmente.');
+      }
+    }
+
+    // =========================================================================
+    // NOTIFICACIÓN SUPERIOR (TOAST)
+    // =========================================================================
+    function showToast(msg) {
+      const banner = document.getElementById('toastBanner');
+      document.getElementById('toastText').textContent = msg;
+      banner.classList.remove('hidden');
+    }
+
+    function hideToast() {
+      document.getElementById('toastBanner').classList.add('hidden');
+    }
+
+    // Arrancar configuración al cargar
+    window.addEventListener('DOMContentLoaded', initLobby);
+  </script>
+</body>
+</html>
